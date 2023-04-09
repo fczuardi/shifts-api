@@ -13,4 +13,25 @@ Copyright Fabricio Campos Zuardi, 2023
 
 This is a Free Software licensed under the AGPL-3.0 license, please read the [LICENSE](./LICENSE) file.
 
+## Development
+
+### Environment variables
+
+Copy the `.env.example` file to `.env`:
+
+```
+cp .env.example .env
+```
+
+### Run tests
+
+```
+RUST_LOG=shifts_api::tests=debug cargo test
+```
+
+### Format code
+
+```
+cargo fmt --all
+```
 
