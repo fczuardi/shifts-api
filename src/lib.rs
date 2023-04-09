@@ -1,28 +1,9 @@
-use chrono::NaiveDateTime;
 use sqlx::PgPool;
-use std::convert::TryFrom;
+use types::{
+    FacilityId, IneligibilityReason, Shift, ShiftEndTime, ShiftListError, ShiftStartTime, WorkerId,
+};
 
-#[derive(Debug)]
-pub struct FacilityId(i32);
-
-pub struct WorkerId(i32);
-
-pub struct ShiftStartTime(NaiveDateTime);
-
-pub struct ShiftEndTime(NaiveDateTime);
-
-#[derive(Debug, PartialEq)]
-pub struct Shift;
-
-#[derive(Debug, PartialEq)]
-pub enum IneligibilityReason {
-    InactiveFacility,
-}
-
-#[derive(Debug, PartialEq)]
-pub enum ShiftListError {
-    EligibilityError(IneligibilityReason),
-}
+mod types;
 
 // Story:
 //
@@ -103,18 +84,3 @@ async fn is_facility_active(pool: &PgPool, facility_id: FacilityId) -> Result<bo
 
     Ok(is_active)
 }
-
-macro_rules! impl_try_from_for_shift_time {
-    ($shift_time:ident) => {
-        impl TryFrom<&str> for $shift_time {
-            type Error = chrono::ParseError;
-
-            fn try_from(time_str: &str) -> Result<Self, Self::Error> {
-                let datetime = NaiveDateTime::parse_from_str(time_str, "%Y-%m-%d %H:%M")?;
-                Ok(Self(datetime))
-            }
-        }
-    };
-}
-impl_try_from_for_shift_time!(ShiftStartTime);
-impl_try_from_for_shift_time!(ShiftEndTime);
