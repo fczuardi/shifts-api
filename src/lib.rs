@@ -1,4 +1,5 @@
 use chrono::NaiveDateTime;
+use sqlx::PgPool;
 use std::convert::TryFrom;
 
 #[derive(Debug)]
@@ -32,19 +33,20 @@ mod tests {
 
     use env_logger;
     use log::debug;
+    use sqlx::PgPool;
 
     // Given an inactive facility, when I request all available shifts
     // within a start and end date, then it will not return a list of shifts
     // from that facility.
-    #[test]
-    fn test_shifts_of_inactive_facility() -> Result<(), String> {
+    #[sqlx::test(fixtures("facilities"))]
+    async fn test_shifts_of_inactive_facility(pool: PgPool) -> Result<(), String> {
         env_logger::try_init().ok();
 
         let worker_id = WorkerId(1);
         let inactive_facility_id = FacilityId(4);
         let start = ShiftStartTime::try_from("2023-01-01 00:00").unwrap();
         let end = ShiftEndTime::try_from("2023-01-31 23:59").unwrap();
-        let result = list_eligible_shifts(worker_id, inactive_facility_id, start, end);
+        let result = list_eligible_shifts(&pool, worker_id, inactive_facility_id, start, end).await;
         debug!("{:?}", result);
         assert_eq!(
             result,
@@ -55,38 +57,51 @@ mod tests {
         Ok(())
     }
 
-    // Falicities 4, 6, 9, 10 are inactive on bootstrap db
-    #[test]
-    fn test_is_facility_active() {
+    #[sqlx::test(fixtures("facilities"))]
+    async fn test_is_facility_active(pool: PgPool) {
         env_logger::try_init().ok();
 
-        let facility_id = FacilityId(4);
-        let result = is_facility_active(facility_id);
+        let inactive_facility_id = FacilityId(4);
+        let result = is_facility_active(&pool, inactive_facility_id).await;
         debug!("{:?}", result);
-        assert_eq!(result, Ok(false));
+        assert_eq!(result.unwrap(), false);
 
-        let facility_id = FacilityId(5);
-        let result = is_facility_active(facility_id);
+        let active_facility_id = FacilityId(5);
+        let result = is_facility_active(&pool, active_facility_id).await;
         debug!("{:?}", result);
-        assert_eq!(result, Ok(true));
+        assert_eq!(result.unwrap(), true);
     }
 }
 
-pub fn list_eligible_shifts(
+pub async fn list_eligible_shifts(
+    pool: &PgPool,
     _worker: WorkerId,
     facility_id: FacilityId,
     _start: ShiftStartTime,
     _end: ShiftEndTime,
 ) -> Result<Vec<Shift>, ShiftListError> {
-    match is_facility_active(facility_id) {
-        Ok(false) => Err(ShiftListError::EligibilityError( IneligibilityReason::InactiveFacility,)),
+    match is_facility_active(pool, facility_id).await {
+        Ok(false) => Err(ShiftListError::EligibilityError(
+            IneligibilityReason::InactiveFacility,
+        )),
         _ => unimplemented!(),
     }
 }
 
-fn is_facility_active(facility_id: FacilityId) -> Result<bool, String> {
-    // TODO: replace this with the actual db query
-    Ok(![4, 6, 9, 10].contains(&facility_id.0))
+async fn is_facility_active(pool: &PgPool, facility_id: FacilityId) -> Result<bool, sqlx::Error> {
+    let is_active = sqlx::query!(
+        r#"
+        SELECT is_active
+        FROM "Facility"
+        WHERE id = $1
+        "#,
+        facility_id.0
+    )
+    .fetch_one(pool)
+    .await?
+    .is_active;
+
+    Ok(is_active)
 }
 
 macro_rules! impl_try_from_for_shift_time {
