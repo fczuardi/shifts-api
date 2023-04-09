@@ -16,6 +16,7 @@ pub struct Shift;
 #[derive(Debug, PartialEq)]
 pub enum IneligibilityReason {
     InactiveFacility,
+    InactiveWorker,
 }
 
 #[derive(Debug, PartialEq)]
