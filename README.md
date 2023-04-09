@@ -13,4 +13,17 @@ Copyright Fabricio Campos Zuardi, 2023
 
 This is a Free Software licensed under the AGPL-3.0 license, please read the [LICENSE](./LICENSE) file.
 
+## Development
+
+### Run tests
+
+```
+RUST_LOG=debug cargo test
+```
+
+### Format code
+
+```
+cargo fmt --all
+```
 
