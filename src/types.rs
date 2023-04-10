@@ -10,6 +10,19 @@ pub struct ShiftStartTime(NaiveDateTime);
 
 pub struct ShiftEndTime(NaiveDateTime);
 
+#[derive(sqlx::Type, Debug)]
+pub enum WorkerProfession {
+    CNA,
+    LVN,
+    RN,
+}
+
+#[derive(Debug)]
+pub struct Worker {
+    pub profession: WorkerProfession,
+    pub is_active: bool,
+}
+
 #[derive(Debug, PartialEq)]
 pub struct Shift;
 
@@ -21,6 +34,7 @@ pub enum IneligibilityReason {
 
 #[derive(Debug, PartialEq)]
 pub enum ShiftListError {
+    DatabaseError(String),
     EligibilityError(IneligibilityReason),
 }
 
