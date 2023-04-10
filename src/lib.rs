@@ -1,7 +1,7 @@
 use sqlx::PgPool;
 use types::{
-    FacilityId, IneligibilityReason, Shift, ShiftEndTime, ShiftListError, ShiftStartTime, Worker,
-    WorkerId, WorkerProfession,
+    FacilityId, IneligibilityReason, Shift, ShiftEndTime, ShiftId, ShiftListError, ShiftStartTime,
+    Worker, WorkerId, WorkerProfession,
 };
 
 mod types;
@@ -15,10 +15,10 @@ pub async fn list_eligible_shifts(
     pool: &PgPool,
     worker_id: WorkerId,
     facility_id: FacilityId,
-    _start: ShiftStartTime,
-    _end: ShiftEndTime,
+    start: ShiftStartTime,
+    end: ShiftEndTime,
 ) -> Result<Vec<Shift>, ShiftListError> {
-    match is_facility_active(pool, facility_id).await {
+    match is_facility_active(pool, &facility_id).await {
         Ok(false) => {
             return Err(ShiftListError::EligibilityError(
                 IneligibilityReason::InactiveFacility,
@@ -39,14 +39,28 @@ pub async fn list_eligible_shifts(
         }
         Err(e) => return Err(ShiftListError::DatabaseError(e.to_string())),
     };
-    // Filters for the query:
-    // - The professions between the Shift and Worker must match.
-    //      - profession = worker.profession
-    // - The Shift must be active(`is_deleted=False`) and not claimed by someone else.
-    //      - NOT is_deleted
-    // - The Worker must not have claimed a shift that collides with the shift they are is eligible for.
-    //      - worker_id is null
-    unimplemented!()
+
+    let shifts = sqlx::query_as!(
+        Shift,
+        r#"
+        SELECT id as "id: ShiftId", start as "start: ShiftStartTime", "end" as "end: ShiftEndTime"
+        FROM "Shift"
+        WHERE NOT is_deleted AND
+          facility_id = $1 AND
+          "start" >= $2 AND
+          "end" <= $3 AND
+          profession = $4 AND
+          'True'
+        "#,
+        facility_id.0,
+        start.0,
+        end.0,
+        profession as _,
+    )
+    .fetch_all(pool)
+    .await
+    .unwrap();
+    Ok(shifts)
 }
 
 async fn get_worker(pool: &PgPool, worker_id: WorkerId) -> Result<Worker, sqlx::Error> {
@@ -65,7 +79,7 @@ async fn get_worker(pool: &PgPool, worker_id: WorkerId) -> Result<Worker, sqlx::
     Ok(worker)
 }
 
-async fn is_facility_active(pool: &PgPool, facility_id: FacilityId) -> Result<bool, sqlx::Error> {
+async fn is_facility_active(pool: &PgPool, facility_id: &FacilityId) -> Result<bool, sqlx::Error> {
     let is_active = sqlx::query!(
         r#"
         SELECT is_active

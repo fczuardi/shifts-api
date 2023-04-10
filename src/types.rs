@@ -6,11 +6,17 @@ pub struct FacilityId(pub i32);
 
 pub struct WorkerId(pub i32);
 
-pub struct ShiftStartTime(NaiveDateTime);
+#[derive(sqlx::Type, Debug, PartialEq)]
+pub struct ShiftId(pub i32);
 
-pub struct ShiftEndTime(NaiveDateTime);
+#[derive(sqlx::Type, Debug, PartialEq)]
+pub struct ShiftStartTime(pub NaiveDateTime);
+
+#[derive(sqlx::Type, Debug, PartialEq)]
+pub struct ShiftEndTime(pub NaiveDateTime);
 
 #[derive(sqlx::Type, Debug)]
+#[sqlx(type_name = "Profession")]
 pub enum WorkerProfession {
     CNA,
     LVN,
@@ -24,7 +30,11 @@ pub struct Worker {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Shift;
+pub struct Shift {
+    pub id: ShiftId,
+    pub start: ShiftStartTime,
+    pub end: ShiftEndTime,
+}
 
 #[derive(Debug, PartialEq)]
 pub enum IneligibilityReason {

@@ -1,0 +1,16 @@
+CREATE TABLE "Shift" (
+  id SERIAL PRIMARY KEY,
+  start TIMESTAMP(3) WITHOUT TIME ZONE NOT NULL,
+  "end" TIMESTAMP(3) WITHOUT TIME ZONE NOT NULL,
+  profession "Profession" NOT NULL,
+  is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+  facility_id INTEGER NOT NULL,
+  worker_id INTEGER
+);
+
+INSERT INTO "Shift"
+  (id, start, "end", profession, is_deleted, facility_id, worker_id) VALUES
+  (1647687, '2023-02-01 13:00:00.997', '2023-02-01 18:00:00.997', 'CNA', FALSE, 5, NULL),
+  (1458709, '2023-02-01 13:00:00.997', '2023-02-01 18:00:00.997', 'CNA', FALSE, 5, NULL),
+  (1455538, '2023-02-01 13:00:00.994', '2023-02-01 18:00:00.994', 'LVN', False, 5, NULL),
+  (1516544, '2023-02-01 13:00:00.994', '2023-02-01 18:00:00.994', 'CNA', FALSE, 5, NULL);

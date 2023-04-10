@@ -1,6 +1,3 @@
-// Story:
-//
-//     As a worker, I want to get all available shifts that I'm eligible for to work at a facility.
 use super::*;
 
 use env_logger;
@@ -12,17 +9,17 @@ async fn test_is_facility_active(pool: PgPool) {
     env_logger::try_init().ok();
 
     let active_facility_id = FacilityId(5);
-    let result = is_facility_active(&pool, active_facility_id).await;
+    let result = is_facility_active(&pool, &active_facility_id).await;
     debug!("{:?}", result);
     assert_eq!(result.unwrap(), true);
 
     let inactive_facility_id = FacilityId(4);
-    let result = is_facility_active(&pool, inactive_facility_id).await;
+    let result = is_facility_active(&pool, &inactive_facility_id).await;
     debug!("{:?}", result);
     assert_eq!(result.unwrap(), false);
 
     let invalid_facility_id = FacilityId(5000);
-    let result = is_facility_active(&pool, invalid_facility_id).await;
+    let result = is_facility_active(&pool, &invalid_facility_id).await;
     debug!("{:?}", result);
     assert!(result.is_err());
 }
@@ -44,6 +41,24 @@ async fn test_get_worker(pool: PgPool) {
     let result = get_worker(&pool, invalid_worker_id).await;
     debug!("{:?}", result);
     assert!(result.is_err());
+}
+
+// As a worker, I want to get all available shifts that I'm eligible for to work at a facility.
+#[sqlx::test(fixtures("workers", "facilities", "shifts"))]
+async fn test_shifts_of_a_facility(pool: PgPool) -> Result<(), String> {
+    env_logger::try_init().ok();
+
+    let worker_id = WorkerId(4);
+    let facility_id = FacilityId(5);
+    let start = ShiftStartTime::try_from("2023-02-01 13:00").unwrap();
+    let end = ShiftEndTime::try_from("2023-02-01 18:01").unwrap();
+    let result = list_eligible_shifts(&pool, worker_id, facility_id, start, end).await.unwrap();
+    debug!("{:?}", result);
+
+    assert_eq!(result.len(), 3, "Expected 3 eligible shifts");
+    assert_eq!(result[0].id.0, 1647687, "Expected first shift id to be 1647687");
+
+    Ok(())
 }
 
 // Given an inactive facility, when I request all available shifts
